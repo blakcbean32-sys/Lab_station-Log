@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>연구장비 디지털 사용일지</title>
-    <!-- Supabase JS SDK 로드 -->
+    <!-- Supabase JS SDK CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
@@ -196,11 +196,11 @@
     // =========================================================
     const SUPABASE_URL = "https://acdfxgazhhzrdbvhxale.supabase.co";
     
-    // ⚠️ Legacy anon key (eyJhbGciOi...)를 여기에 꼭 넣어주세요!
+    // ⬇️ 아래 큰따옴표 안에 복사하신 Legacy anon key (eyJhbGci...)를 정확히 붙여넣어 주세요!
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZGZ4Z2F6aGh6cmRidmh4YWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjQ4MDksImV4cCI6MjEwMTMwMDgwOX0.5YDhChqCeL0j-JnzrsKzJSpTWPNX5gBK0B68tPmdgGk"; 
 
-    // Supabase 클라이언트 변수명을 'db'로 변경
-    const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+    // 변수 이름을 supabaseClient로 통일하여 초기화
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // =========================================================
     // 2. URL 파라미터 추출 (?device=Lab07_01)
@@ -311,3 +311,4 @@
     });
 </script>
 </body>
+</html>
