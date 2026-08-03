@@ -47,7 +47,6 @@
             font-weight: 600;
             font-size: 0.95rem;
         }
-        /* 실시간 상태 표시 박스 스타일 */
         .status-box {
             padding: 14px;
             border-radius: 10px;
@@ -56,10 +55,10 @@
             font-weight: 600;
             font-size: 0.95rem;
         }
-        .status-box.available { background-color: #e6f4ea; color: #137333; border: 1px solid #ceead6; } /* 정상 - 사용가능 */
-        .status-box.in-use { background-color: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; } /* 정상 - 사용중 */
-        .status-box.maintenance { background-color: #fef7e0; color: #b06000; border: 1px solid #feefc3; } /* 점검중 */
-        .status-box.broken { background-color: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; } /* 고장 */
+        .status-box.available { background-color: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
+        .status-box.in-use { background-color: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; }
+        .status-box.maintenance { background-color: #fef7e0; color: #b06000; border: 1px solid #feefc3; }
+        .status-box.broken { background-color: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; }
 
         .form-group {
             margin-bottom: 20px;
@@ -150,11 +149,9 @@
 <div class="container">
     <div class="header">
         <h1>연구장비 사용일지</h1>
-        <!-- 장비 이름 표시 -->
         <div class="device-badge" id="deviceDisplay">장비 확인 중...</div>
     </div>
 
-    <!-- 상태 표시 박스 (정상/점검중/고장 및 사용가능/사용중) -->
     <div id="statusBox" class="status-box available">상태 불러오는 중...</div>
 
     <form id="usageForm">
@@ -195,17 +192,18 @@
 
 <script>
     // =========================================================
-    // 1. Supabase 연동 정보
+    // 1. Supabase 접속 정보 설정
     // =========================================================
     const SUPABASE_URL = "https://acdfxgazhhzrdbvhxale.supabase.co";
+    
+    // ⚠️ Legacy anon key (eyJhbGciOi...)를 여기에 꼭 넣어주세요!
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZGZ4Z2F6aGh6cmRidmh4YWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjQ4MDksImV4cCI6MjEwMTMwMDgwOX0.5YDhChqCeL0j-JnzrsKzJSpTWPNX5gBK0B68tPmdgGk"; 
 
-    // 반드시 eyJhbGciOi... 로 시작하는 긴 문자열(Legacy anon key)을 넣어야 합니다.
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZGZ4Z2F6aGh6cmRidmh4YWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1ODAzNTMsImV4cCI6MjA1NDE1NjM1M30.실제_복사한_전체_키";
-
+    // 변수 이름을 'supabaseClient'로 변경하여 변수명 중복 에러 해결
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // =========================================================
-    // 2. URL 파라미터 추출 (?device=EQ01)
+    // 2. URL 파라미터 추출 (?device=Lab07_01)
     // =========================================================
     const urlParams = new URLSearchParams(window.location.search);
     const deviceId = urlParams.get('device') || '미지정';
@@ -213,7 +211,7 @@
     let currentDeviceName = deviceId;
 
     // =========================================================
-    // 3. 장비 정보(device_name/status) 및 최신 사용 로그 불러오기
+    // 3. 장비 정보 및 상태 데이터 불러오기
     // =========================================================
     async function loadDeviceInfoAndStatus() {
         const statusBox = document.getElementById('statusBox');
@@ -225,8 +223,8 @@
             return;
         }
 
-        // [A] equipments 테이블에서 장비 정보 조회
-        const { data: equipData, error: equipError } = await supabase
+        // [A] equipments 테이블 조회
+        const { data: equipData, error: equipError } = await supabaseClient
             .from('equipments')
             .select('*')
             .eq('device_id', deviceId)
@@ -238,7 +236,6 @@
             currentDeviceName = equipData.device_name;
             document.getElementById('deviceDisplay').innerText = currentDeviceName;
             
-            // [B] 장비 상태가 '점검중' 또는 '고장'인 경우 제출 차단
             if (equipData.status === '점검중') {
                 statusBox.className = "status-box maintenance";
                 statusBox.innerHTML = "🟡 <b>현재 점검 중인 장비입니다.</b> (사용 불가)";
@@ -252,8 +249,8 @@
             }
         }
 
-        // [C] 상태가 '정상'일 경우 최신 사용로그를 확인하여 '사용가능' / '사용중' 판별
-        const { data: logData } = await supabase
+        // [B] equipment_logs 최신 상태 조회
+        const { data: logData } = await supabaseClient
             .from('equipment_logs')
             .select('*')
             .eq('device_id', deviceId)
@@ -275,7 +272,7 @@
     loadDeviceInfoAndStatus();
 
     // =========================================================
-    // 4. 폼 제출 이벤트 (equipment_logs 테이블에 저장)
+    // 4. 폼 제출 이벤트 처리
     // =========================================================
     const form = document.getElementById('usageForm');
     const submitBtn = document.getElementById('submitBtn');
@@ -296,7 +293,7 @@
             note: document.getElementById('note').value
         };
 
-        const { error } = await supabase.from('equipment_logs').insert([payload]);
+        const { error } = await supabaseClient.from('equipment_logs').insert([payload]);
 
         if (error) {
             responseMsg.className = "message error";
@@ -305,7 +302,7 @@
             responseMsg.className = "message success";
             responseMsg.innerText = "✅ 기록이 성공적으로 저장되었습니다!";
             form.reset();
-            loadDeviceInfoAndStatus(); // 제출 후 상태 갱신
+            loadDeviceInfoAndStatus();
         }
 
         responseMsg.style.display = "block";
@@ -314,4 +311,3 @@
     });
 </script>
 </body>
-</html>
