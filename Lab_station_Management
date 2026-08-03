@@ -198,9 +198,9 @@
     // 1. Supabase 연동 정보
     // =========================================================
     const SUPABASE_URL = "https://acdfxgazhhzrdbvhxale.supabase.co";
-    
-    // ⚠️ 아래 "YOUR_ANON_KEY" 자리에 본인의 anon public key를 넣으세요.
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZGZ4Z2F6aGh6cmRidmh4YWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjQ4MDksImV4cCI6MjEwMTMwMDgwOX0.5YDhChqCeL0j-JnzrsKzJSpTWPNX5gBK0B68tPmdgGk"; 
+
+    // 반드시 eyJhbGciOi... 로 시작하는 긴 문자열(Legacy anon key)을 넣어야 합니다.
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZGZ4Z2F6aGh6cmRidmh4YWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1ODAzNTMsImV4cCI6MjA1NDE1NjM1M30.실제_복사한_전체_키";
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
