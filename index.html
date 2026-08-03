@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>연구장비 디지털 사용일지</title>
-    <!-- Supabase JS SDK CDN -->
+    <!-- Supabase JS SDK 로드 (head 태그 최상단에 위치) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
@@ -191,31 +191,35 @@
 </div>
 
 <script>
-    // =========================================================
-    // 1. Supabase 접속 정보 설정
-    // =========================================================
+    // 1. Supabase 접속 설정
     const SUPABASE_URL = "https://acdfxgazhhzrdbvhxale.supabase.co";
     
-    // ⬇️ 아래 큰따옴표 안에 복사하신 Legacy anon key (eyJhbGci...)를 정확히 붙여넣어 주세요!
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZGZ4Z2F6aGh6cmRidmh4YWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjQ4MDksImV4cCI6MjEwMTMwMDgwOX0.5YDhChqCeL0j-JnzrsKzJSpTWPNX5gBK0B68tPmdgGk"; 
+    // ⚠️ 아래 큰따옴표 안에 Supabase에서 복사한 Legacy anon key (eyJhbGciOi...)를 입력하세요.
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZGZ4Z2F6aGh6cmRidmh4YWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjQ4MDksImV4cCI6MjEwMTMwMDgwOX0.5YDhChqCeL0j-JnzrsKzJSpTWPNX5gBK0B68tPmdgGk";
 
-    // 변수 이름을 supabaseClient로 통일하여 초기화
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 스크립트 전역 변수 선언
+    var supabaseClient;
 
-    // =========================================================
-    // 2. URL 파라미터 추출 (?device=Lab07_01)
-    // =========================================================
+    // 라이브러리 로드 후 안전하게 초기화
+    window.addEventListener('DOMContentLoaded', function() {
+        if (window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            loadDeviceInfoAndStatus();
+        } else {
+            console.error("Supabase SDK를 불러오지 못했습니다.");
+        }
+    });
+
+    // 2. URL 파라미터 추출
     const urlParams = new URLSearchParams(window.location.search);
     const deviceId = urlParams.get('device') || '미지정';
 
-    let currentDeviceName = deviceId;
-
-    // =========================================================
-    // 3. 장비 정보 및 상태 데이터 불러오기
-    // =========================================================
+    // 3. 장비 데이터 불러오기 함수
     async function loadDeviceInfoAndStatus() {
         const statusBox = document.getElementById('statusBox');
         const submitBtn = document.getElementById('submitBtn');
+
+        if (!supabaseClient) return;
 
         if (deviceId === '미지정') {
             document.getElementById('deviceDisplay').innerText = "장비 ID 미지정";
@@ -223,7 +227,6 @@
             return;
         }
 
-        // [A] equipments 테이블 조회
         const { data: equipData, error: equipError } = await supabaseClient
             .from('equipments')
             .select('*')
@@ -233,8 +236,7 @@
         if (equipError || !equipData) {
             document.getElementById('deviceDisplay').innerText = `장비: ${deviceId}`;
         } else {
-            currentDeviceName = equipData.device_name;
-            document.getElementById('deviceDisplay').innerText = currentDeviceName;
+            document.getElementById('deviceDisplay').innerText = equipData.device_name;
             
             if (equipData.status === '점검중') {
                 statusBox.className = "status-box maintenance";
@@ -249,7 +251,6 @@
             }
         }
 
-        // [B] equipment_logs 최신 상태 조회
         const { data: logData } = await supabaseClient
             .from('equipment_logs')
             .select('*')
@@ -269,17 +270,15 @@
         }
     }
 
-    loadDeviceInfoAndStatus();
-
-    // =========================================================
-    // 4. 폼 제출 이벤트 처리
-    // =========================================================
+    // 4. 폼 제출 처리
     const form = document.getElementById('usageForm');
     const submitBtn = document.getElementById('submitBtn');
     const responseMsg = document.getElementById('responseMessage');
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
+
+        if (!supabaseClient) return;
 
         submitBtn.disabled = true;
         submitBtn.innerText = "저장 중...";
