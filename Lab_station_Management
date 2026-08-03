@@ -47,7 +47,7 @@
             font-weight: 600;
             font-size: 0.95rem;
         }
-        /* 실시간 상태 표시 박스 추가 */
+        /* 실시간 상태 표시 박스 스타일 확장 */
         .status-box {
             padding: 14px;
             border-radius: 10px;
@@ -56,16 +56,11 @@
             font-weight: 600;
             font-size: 0.95rem;
         }
-        .status-box.available {
-            background-color: #e6f4ea;
-            color: #137333;
-            border: 1px solid #ceead6;
-        }
-        .status-box.in-use {
-            background-color: #fce8e6;
-            color: #c5221f;
-            border: 1px solid #fad2cf;
-        }
+        .status-box.available { background-color: #e6f4ea; color: #137333; border: 1px solid #ceead6; } /* 정상 - 사용가능 */
+        .status-box.in-use { background-color: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; } /* 정상 - 사용중 */
+        .status-box.maintenance { background-color: #fef7e0; color: #b06000; border: 1px solid #feefc3; } /* 점검중 */
+        .status-box.broken { background-color: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; } /* 고장 */
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -112,13 +107,11 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        /* 시작 버튼 선택 시 스타일 */
         .radio-option input[value="시작"]:checked + label {
             background-color: #e6f4ea;
             border-color: #137333;
             color: #137333;
         }
-        /* 종료 버튼 선택 시 스타일 */
         .radio-option input[value="종료"]:checked + label {
             background-color: #fce8e6;
             border-color: #c5221f;
@@ -137,13 +130,9 @@
             transition: background-color 0.2s;
             margin-top: 8px;
         }
-        .btn-submit:hover {
-            background-color: #1557b0;
-        }
-        .btn-submit:disabled {
-            background-color: #94a3b8;
-            cursor: not-allowed;
-        }
+        .btn-submit:hover { background-color: #1557b0; }
+        .btn-submit:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        
         .message {
             margin-top: 16px;
             padding: 12px;
@@ -152,14 +141,8 @@
             font-size: 0.95rem;
             display: none;
         }
-        .message.success {
-            background-color: #d1e7dd;
-            color: #0f5132;
-        }
-        .message.error {
-            background-color: #f8d7da;
-            color: #842029;
-        }
+        .message.success { background-color: #d1e7dd; color: #0f5132; }
+        .message.error { background-color: #f8d7da; color: #842029; }
     </style>
 </head>
 <body>
@@ -167,10 +150,11 @@
 <div class="container">
     <div class="header">
         <h1>연구장비 사용일지</h1>
+        <!-- 장비 이름 표시 -->
         <div class="device-badge" id="deviceDisplay">장비 확인 중...</div>
     </div>
 
-    <!-- 실시간 상태 표시 박스 -->
+    <!-- 상태 표시 박스 (정상/점검중/고장 및 사용가능/사용중) -->
     <div id="statusBox" class="status-box available">상태 불러오는 중...</div>
 
     <form id="usageForm">
@@ -210,49 +194,79 @@
 </div>
 
 <script>
-    // ⚠️ [중요] Supabase Project Settings -> API에서 복사한 값으로 교체해 주세요!
+    // ⚠️ Supabase 프로젝트 정보로 변경하세요!
     const SUPABASE_URL = "https://YOUR_SUPABASE_PROJECT_ID.supabase.co";
     const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 1. URL 파라미터에서 device 값 추출 (예: ?device=EQ01)
+    // 1. URL 파라미터 추출 (?device=EQ01)
     const urlParams = new URLSearchParams(window.location.search);
-    const deviceId = urlParams.get('device') || '미지정 장비';
+    const deviceId = urlParams.get('device') || '미지정';
 
-    // 화면에 장비 ID 표시
-    document.getElementById('deviceDisplay').innerText = `장비: ${deviceId}`;
+    let currentDeviceName = deviceId;
 
-    // 2. 장비의 최신 사용 상태 확인 기능
-    async function checkDeviceStatus() {
+    // 2. 장비 정보(이름/기본상태) 및 최신 사용이력 불러오기
+    async function loadDeviceInfoAndStatus() {
         const statusBox = document.getElementById('statusBox');
-        if (deviceId === '미지정 장비') {
+        const submitBtn = document.getElementById('submitBtn');
+
+        if (deviceId === '미지정') {
+            document.getElementById('deviceDisplay').innerText = "장비 ID 미지정";
             statusBox.style.display = 'none';
             return;
         }
 
-        const { data, error } = await supabase
+        // [A] equipments 테이블에서 장비 이름 및 기본 상태(정상/점검중/고장) 조회
+        const { data: equipData, error: equipError } = await supabase
+            .from('equipments')
+            .select('*')
+            .eq('device_id', deviceId)
+            .single();
+
+        if (equipError || !equipData) {
+            document.getElementById('deviceDisplay').innerText = `장비: ${deviceId}`;
+        } else {
+            currentDeviceName = equipData.device_name;
+            document.getElementById('deviceDisplay').innerText = currentDeviceName;
+            
+            // [B] 장비 상태가 '점검중' 또는 '고장'인 경우 처리
+            if (equipData.status === '점검중') {
+                statusBox.className = "status-box maintenance";
+                statusBox.innerHTML = "🟡 <b>현재 점검 중인 장비입니다.</b> (사용 불가)";
+                submitBtn.disabled = true;
+                return;
+            } else if (equipData.status === '고장') {
+                statusBox.className = "status-box broken";
+                statusBox.innerHTML = "🔴 <b>현재 고장/수리 중인 장비입니다.</b> (사용 불가)";
+                submitBtn.disabled = true;
+                return;
+            }
+        }
+
+        // [C] 상태가 '정상'인 경우, 최근 사용로그를 확인하여 '사용가능' / '사용중' 판단
+        const { data: logData } = await supabase
             .from('equipment_logs')
             .select('*')
             .eq('device_id', deviceId)
             .order('created_at', { ascending: false })
             .limit(1);
 
-        if (error || !data || data.length === 0 || data[0].status === '종료') {
+        if (!logData || logData.length === 0 || logData[0].status === '종료') {
             statusBox.className = "status-box available";
-            statusBox.innerHTML = "🟢 <b>현재 사용 가능</b>한 장비입니다.";
-            document.getElementById('statusStart').checked = true; // 기본값: 시작
+            statusBox.innerHTML = "🟢 <b>정상 (사용 가능)</b>";
+            document.getElementById('statusStart').checked = true;
         } else {
-            const lastLog = data[0];
+            const lastLog = logData[0];
             statusBox.className = "status-box in-use";
-            statusBox.innerHTML = `🔴 <b>사용 중</b> (${lastLog.user_name} / ${lastLog.department})`;
-            document.getElementById('statusEnd').checked = true; // 기본값: 종료
+            statusBox.innerHTML = `🔵 <b>사용 중</b> (${lastLog.user_name} / ${lastLog.department})`;
+            document.getElementById('statusEnd').checked = true;
         }
     }
 
-    checkDeviceStatus();
+    loadDeviceInfoAndStatus();
 
-    // 3. 폼 제출 이벤트 처리 (Supabase DB 저장)
+    // 3. 폼 제출 이벤트
     const form = document.getElementById('usageForm');
     const submitBtn = document.getElementById('submitBtn');
     const responseMsg = document.getElementById('responseMessage');
@@ -260,12 +274,10 @@
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        // 중복 제출 방지
         submitBtn.disabled = true;
         submitBtn.innerText = "저장 중...";
         responseMsg.style.display = "none";
 
-        // 데이터 수집
         const payload = {
             device_id: deviceId,
             department: document.getElementById('department').value,
@@ -274,31 +286,22 @@
             note: document.getElementById('note').value
         };
 
-        // Supabase DB에 데이터 입력
-        const { error } = await supabase
-            .from('equipment_logs')
-            .insert([payload]);
+        const { error } = await supabase.from('equipment_logs').insert([payload]);
 
         if (error) {
-            console.error('Error:', error);
             responseMsg.className = "message error";
             responseMsg.innerText = "❌ 저장에 실패했습니다: " + error.message;
-            responseMsg.style.display = "block";
         } else {
             responseMsg.className = "message success";
             responseMsg.innerText = "✅ 기록이 성공적으로 저장되었습니다!";
-            responseMsg.style.display = "block";
-
-            // 폼 초기화 및 상태 업데이트
             form.reset();
-            document.getElementById('deviceDisplay').innerText = `장비: ${deviceId}`;
-            checkDeviceStatus();
+            loadDeviceInfoAndStatus(); // 상태 재갱신
         }
 
+        responseMsg.style.display = "block";
         submitBtn.disabled = false;
         submitBtn.innerText = "기록 제출하기";
     });
 </script>
-
 </body>
 </html>
