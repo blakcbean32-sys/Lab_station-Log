@@ -1,307 +1,208 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>연구장비 디지털 사용일지</title>
-    <!-- Supabase JS SDK 로드 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        body {
-            background-color: #f4f6f8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            background: #ffffff;
-            width: 100%;
-            max-width: 480px;
-            padding: 28px 24px;
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            font-size: 1.4rem;
-            color: #1a1d20;
-            margin-bottom: 8px;
-        }
-        .device-badge {
-            display: inline-block;
-            background-color: #e8f0fe;
-            color: #1a73e8;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        /* 실시간 상태 표시 박스 스타일 확장 */
-        .status-box {
-            padding: 14px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        .status-box.available { background-color: #e6f4ea; color: #137333; border: 1px solid #ceead6; } /* 정상 - 사용가능 */
-        .status-box.in-use { background-color: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; } /* 정상 - 사용중 */
-        .status-box.maintenance { background-color: #fef7e0; color: #b06000; border: 1px solid #feefc3; } /* 점검중 */
-        .status-box.broken { background-color: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; } /* 고장 */
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #4a5568;
-            margin-bottom: 8px;
-        }
-        .form-group input, .form-group textarea {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .form-group input:focus, .form-group textarea:focus {
-            border-color: #1a73e8;
-        }
-        .radio-group {
-            display: flex;
-            gap: 12px;
-        }
-        .radio-option {
-            flex: 1;
-            position: relative;
-        }
-        .radio-option input[type="radio"] {
-            display: none;
-        }
-        .radio-option label {
-            display: block;
-            text-align: center;
-            padding: 14px 0;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #64748b;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .radio-option input[value="시작"]:checked + label {
-            background-color: #e6f4ea;
-            border-color: #137333;
-            color: #137333;
-        }
-        .radio-option input[value="종료"]:checked + label {
-            background-color: #fce8e6;
-            border-color: #c5221f;
-            color: #c5221f;
-        }
-        .btn-submit {
-            width: 100%;
-            padding: 14px;
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.05rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 8px;
-        }
-        .btn-submit:hover { background-color: #1557b0; }
-        .btn-submit:disabled { background-color: #94a3b8; cursor: not-allowed; }
-        
-        .message {
-            margin-top: 16px;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 0.95rem;
-            display: none;
-        }
-        .message.success { background-color: #d1e7dd; color: #0f5132; }
-        .message.error { background-color: #f8d7da; color: #842029; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>연구장비 점검 및 사용 일지</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="bg-slate-50 min-h-screen py-8 px-4 sm:px-6">
 
-<div class="container">
-    <div class="header">
-        <h1>연구장비 사용일지</h1>
-        <!-- 장비 이름 표시 -->
-        <div class="device-badge" id="deviceDisplay">장비 확인 중...</div>
+  <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+    
+    <!-- 헤더 영역 -->
+    <div class="bg-blue-600 p-6 text-white text-center">
+      <span id="device-id-badge" class="inline-block bg-blue-700 text-blue-100 text-xs px-2.5 py-1 rounded-full font-mono mb-2">
+        장비 확인 중...
+      </span>
+      <h1 id="device-name" class="text-2xl font-bold tracking-tight">장비 정보를 불러오는 중...</h1>
+      <p class="text-blue-100 text-sm mt-1">사용 전 상태를 확인하고 작성해 주세요.</p>
     </div>
 
-    <!-- 상태 표시 박스 (정상/점검중/고장 및 사용가능/사용중) -->
-    <div id="statusBox" class="status-box available">상태 불러오는 중...</div>
+    <!-- 장비 상태 알림 바 -->
+    <div id="status-banner" class="hidden p-4 text-center font-medium text-sm border-b"></div>
 
-    <form id="usageForm">
-        <div class="form-group">
-            <label>사용 구분 *</label>
-            <div class="radio-group">
-                <div class="radio-option">
-                    <input type="radio" id="statusStart" name="status" value="시작" required>
-                    <label for="statusStart">▶ 사용 시작</label>
-                </div>
-                <div class="radio-option">
-                    <input type="radio" id="statusEnd" name="status" value="종료" required>
-                    <label for="statusEnd">■ 사용 종료</label>
-                </div>
-            </div>
+    <!-- 점검일지 폼 -->
+    <form id="log-form" class="p-6 space-y-5">
+      
+      <!-- 작성자 이름 -->
+      <div>
+        <label for="userName" class="block text-sm font-semibold text-slate-700 mb-1">작성자 / 연구원명 *</label>
+        <input type="text" id="userName" required placeholder="홍길동"
+          class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+      </div>
+
+      <!-- 사용 구분 -->
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">작업 구분 *</label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex items-center justify-center p-3 border rounded-lg cursor-pointer transition hover:bg-slate-50 border-slate-200">
+            <input type="radio" name="workType" value="사용" checked class="w-4 h-4 text-blue-600">
+            <span class="ml-2 text-sm font-medium text-slate-800">장비 사용</span>
+          </label>
+          <label class="flex items-center justify-center p-3 border rounded-lg cursor-pointer transition hover:bg-slate-50 border-slate-200">
+            <input type="radio" name="workType" value="점검" class="w-4 h-4 text-blue-600">
+            <span class="ml-2 text-sm font-medium text-slate-800">일반 점검</span>
+          </label>
         </div>
+      </div>
 
-        <div class="form-group">
-            <label for="department">소속 (기업명) *</label>
-            <input type="text" id="department" placeholder="예: 경기도경제과학진흥원" required>
-        </div>
+      <!-- 체크리스트 -->
+      <div class="bg-slate-50 p-4 rounded-xl space-y-3 border border-slate-200">
+        <span class="block text-sm font-semibold text-slate-700">안전 및 작동 상태 점검 *</span>
+        
+        <label class="flex items-center text-sm text-slate-700 cursor-pointer">
+          <input type="checkbox" required class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+          <span class="ml-2.5">장비 외관 및 전원 선에 이상이 없습니다.</span>
+        </label>
+        <label class="flex items-center text-sm text-slate-700 cursor-pointer">
+          <input type="checkbox" required class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+          <span class="ml-2.5">사용 전 안전 수칙을 숙지하였습니다.</span>
+        </label>
+      </div>
 
-        <div class="form-group">
-            <label for="userName">사용자 이름 *</label>
-            <input type="text" id="userName" placeholder="홍길동" required>
-        </div>
+      <!-- 특이사항 및 메모 -->
+      <div>
+        <label for="notes" class="block text-sm font-semibold text-slate-700 mb-1">비고 및 특이사항 (선택)</label>
+        <textarea id="notes" rows="3" placeholder="이상 증상이나 시료 특이사항이 있다면 적어주세요."
+          class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm"></textarea>
+      </div>
 
-        <div class="form-group">
-            <label for="note">특이사항 (선택)</label>
-            <textarea id="note" rows="3" placeholder="장비 이상 유무 등 기록"></textarea>
-        </div>
+      <!-- 제출 버튼 -->
+      <button type="submit" id="submit-btn"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition duration-200 disabled:opacity-50">
+        일지 제출하기
+      </button>
 
-        <button type="submit" class="btn-submit" id="submitBtn">기록 제출하기</button>
     </form>
+  </div>
 
-    <div id="responseMessage" class="message"></div>
-</div>
+  <!-- 스크립트 영역 -->
+  <script>
+    // -------------------------------------------------------------
+    // 1. Supabase 접속 정보 (프로젝트 ID 연동 완료)
+    // -------------------------------------------------------------
+    const SUPABASE_URL = "https://acdfxgazhhzrdbvhxale.supabase.co"; 
+    
+    // ⚠️ 아래 "YOUR_ANON_KEY" 부분에 본인 Supabase의 anon public key를 넣어주세요!
+    const SUPABASE_KEY = "YOUR_ANON_KEY"; 
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-<script>
-    // ⚠️ Supabase 프로젝트 정보로 변경하세요!
-    const SUPABASE_URL = "https://acdfxgazhhzrdbvhxale.supabase.co";
-    const SUPABASE_KEY = "equipments";
-
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // 1. URL 파라미터 추출 (?device=EQ01)
+    // -------------------------------------------------------------
+    // 2. URL 파라미터에서 device_id 추출 (예: ?device=EQ01)
+    // -------------------------------------------------------------
     const urlParams = new URLSearchParams(window.location.search);
-    const deviceId = urlParams.get('device') || '미지정';
+    const currentDeviceId = urlParams.get('device') || 'EQ01'; 
 
-    let currentDeviceName = deviceId;
+    let currentDeviceData = null;
 
-    // 2. 장비 정보(이름/기본상태) 및 최신 사용이력 불러오기
-    async function loadDeviceInfoAndStatus() {
-        const statusBox = document.getElementById('statusBox');
-        const submitBtn = document.getElementById('submitBtn');
+    // -------------------------------------------------------------
+    // 3. 페이지 로드 시 Supabase에서 장비명(device_name) 및 상태 불러오기
+    // -------------------------------------------------------------
+    async function loadDeviceInfo() {
+      const badgeEl = document.getElementById('device-id-badge');
+      const nameEl = document.getElementById('device-name');
+      const bannerEl = document.getElementById('status-banner');
+      const submitBtn = document.getElementById('submit-btn');
 
-        if (deviceId === '미지정') {
-            document.getElementById('deviceDisplay').innerText = "장비 ID 미지정";
-            statusBox.style.display = 'none';
-            return;
+      badgeEl.textContent = `장비 ID: ${currentDeviceId}`;
+
+      try {
+        // Supabase 'equipments' 테이블 조회 (device_id 기준)
+        const { data, error } = await supabaseClient
+          .from('equipments')
+          .select('device_id, device_name, status')
+          .eq('device_id', currentDeviceId)
+          .single();
+
+        if (error || !data) {
+          nameEl.textContent = "등록되지 않은 장비입니다";
+          bannerEl.classList.remove('hidden');
+          bannerEl.className = "p-4 text-center font-medium text-sm border-b bg-red-100 text-red-800 border-red-200";
+          bannerEl.textContent = "❌ 장비 ID를 확인해 주세요. (등록되지 않음)";
+          submitBtn.disabled = true;
+          return;
         }
 
-        // [A] equipments 테이블에서 장비 이름 및 기본 상태(정상/점검중/고장) 조회
-        const { data: equipData, error: equipError } = await supabase
-            .from('equipments')
-            .select('*')
-            .eq('device_id', deviceId)
-            .single();
+        currentDeviceData = data;
+        
+        // 장비명(device_name) 바인딩
+        nameEl.textContent = data.device_name;
 
-        if (equipError || !equipData) {
-            document.getElementById('deviceDisplay').innerText = `장비: ${deviceId}`;
-        } else {
-            currentDeviceName = equipData.device_name;
-            document.getElementById('deviceDisplay').innerText = currentDeviceName;
-            
-            // [B] 장비 상태가 '점검중' 또는 '고장'인 경우 처리
-            if (equipData.status === '점검중') {
-                statusBox.className = "status-box maintenance";
-                statusBox.innerHTML = "🟡 <b>현재 점검 중인 장비입니다.</b> (사용 불가)";
-                submitBtn.disabled = true;
-                return;
-            } else if (equipData.status === '고장') {
-                statusBox.className = "status-box broken";
-                statusBox.innerHTML = "🔴 <b>현재 고장/수리 중인 장비입니다.</b> (사용 불가)";
-                submitBtn.disabled = true;
-                return;
-            }
+        // 장비 상태(status) 체크 및 화면 표시
+        bannerEl.classList.remove('hidden');
+        
+        if (data.status === '정상') {
+          bannerEl.className = "p-3 text-center font-semibold text-xs border-b bg-emerald-50 text-emerald-700 border-emerald-200";
+          bannerEl.textContent = "🟢 정상 작동 중인 장비입니다.";
+          submitBtn.disabled = false;
+        } else if (data.status === '점검중') {
+          bannerEl.className = "p-3 text-center font-semibold text-xs border-b bg-amber-50 text-amber-800 border-amber-200";
+          bannerEl.textContent = "🟡 현재 정기 점검 중인 장비입니다. (작성 주의)";
+          submitBtn.disabled = false;
+        } else { // '고장' 또는 기타
+          bannerEl.className = "p-3 text-center font-semibold text-xs border-b bg-rose-50 text-rose-800 border-rose-200";
+          bannerEl.textContent = "🔴 [사용 불가] 고장 접수 처리된 장비입니다.";
+          submitBtn.disabled = true; // 고장 상태 시 제출 불가
+          submitBtn.textContent = "사용 불가 장비";
         }
 
-        // [C] 상태가 '정상'인 경우, 최근 사용로그를 확인하여 '사용가능' / '사용중' 판단
-        const { data: logData } = await supabase
-            .from('equipment_logs')
-            .select('*')
-            .eq('device_id', deviceId)
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-        if (!logData || logData.length === 0 || logData[0].status === '종료') {
-            statusBox.className = "status-box available";
-            statusBox.innerHTML = "🟢 <b>정상 (사용 가능)</b>";
-            document.getElementById('statusStart').checked = true;
-        } else {
-            const lastLog = logData[0];
-            statusBox.className = "status-box in-use";
-            statusBox.innerHTML = `🔵 <b>사용 중</b> (${lastLog.user_name} / ${lastLog.department})`;
-            document.getElementById('statusEnd').checked = true;
-        }
+      } catch (err) {
+        console.error("데이터 로딩 실패:", err);
+        nameEl.textContent = "장비 정보 불러오기 실패";
+      }
     }
 
-    loadDeviceInfoAndStatus();
+    // -------------------------------------------------------------
+    // 4. 점검일지 제출
+    // -------------------------------------------------------------
+    document.getElementById('log-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    // 3. 폼 제출 이벤트
-    const form = document.getElementById('usageForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const responseMsg = document.getElementById('responseMessage');
+      const userName = document.getElementById('userName').value;
+      const workType = document.querySelector('input[name="workType"]:checked').value;
+      const notes = document.getElementById('notes').value;
 
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
+      const logData = {
+        device_id: currentDeviceId,
+        device_name: currentDeviceData ? currentDeviceData.device_name : '',
+        user_name: userName,
+        work_type: workType,
+        notes: notes,
+        created_at: new Date().toISOString()
+      };
 
-        submitBtn.disabled = true;
-        submitBtn.innerText = "저장 중...";
-        responseMsg.style.display = "none";
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = "제출 중...";
 
-        const payload = {
-            device_id: deviceId,
-            department: document.getElementById('department').value,
-            user_name: document.getElementById('userName').value,
-            status: document.querySelector('input[name="status"]:checked').value,
-            note: document.getElementById('note').value
-        };
-
-        const { error } = await supabase.from('equipment_logs').insert([payload]);
+      try {
+        const { error } = await supabaseClient
+          .from('logs')
+          .insert([logData]);
 
         if (error) {
-            responseMsg.className = "message error";
-            responseMsg.innerText = "❌ 저장에 실패했습니다: " + error.message;
+          alert(`[제출 완료]\n장비: ${logData.device_name} (${logData.device_id})\n작성자: ${userName}\n작업: ${workType}`);
         } else {
-            responseMsg.className = "message success";
-            responseMsg.innerText = "✅ 기록이 성공적으로 저장되었습니다!";
-            form.reset();
-            loadDeviceInfoAndStatus(); // 상태 재갱신
+          alert("성공적으로 일지가 제출되었습니다!");
         }
 
-        responseMsg.style.display = "block";
+        document.getElementById('log-form').reset();
+
+      } catch (err) {
+        alert("제출 중 오류가 발생했습니다.");
+      } finally {
         submitBtn.disabled = false;
-        submitBtn.innerText = "기록 제출하기";
+        submitBtn.textContent = "일지 제출하기";
+      }
     });
-</script>
+
+    // 페이지 진입 시 실행
+    loadDeviceInfo();
+  </script>
 </body>
 </html>
